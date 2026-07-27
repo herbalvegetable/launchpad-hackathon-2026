@@ -1,7 +1,7 @@
-// Canned Claude API responses keyed by CVE id, used when VITE_DEMO_MODE=true
+// Canned Agnes AI API responses keyed by CVE id, used when VITE_DEMO_MODE=true
 // so every tab on the CVE Detail page is populated without live API calls.
 
-export const demoClaudeExplanations = {
+export const demoAgnesExplanations = {
   'CVE-2024-31337': {
     oneLiner:
       'Orbit Gateway will run a command an attacker sends it, without checking who sent it or what the command does.',
@@ -100,7 +100,7 @@ export const demoClaudeExplanations = {
   },
 };
 
-export const demoClaudeAnalogies = {
+export const demoAgnesAnalogies = {
   'CVE-2024-31337':
     'Imagine your office has a front desk that will follow any instruction handed to it on a sticky note, no ID required, and the desk happens to hold the master keys. Someone outside just has to walk up, hand over the right note, and they can open every door in the building. That is what this vulnerability lets an attacker do to the affected devices over the network. Patching means changing that front desk so it only follows instructions from people it has actually verified.',
   'CVE-2024-28812':
@@ -115,7 +115,7 @@ export const demoClaudeAnalogies = {
     'This is like a maintenance closet door in a building that is supposed to need a special key, but actually opens for any employee badge, even a visitor pass. It does not lead anywhere dangerous by itself, but it lets a visitor see the building\u2019s wiring diagrams. Patching means locking that closet so only the right badges open it.',
 };
 
-export const demoClaudeMermaid = {
+export const demoAgnesMermaid = {
   'CVE-2024-31337': `graph TD
   A[Attacker reaches endpoint] --> B[Sends malformed command]
   B --> C[Vulnerable version interprets it]

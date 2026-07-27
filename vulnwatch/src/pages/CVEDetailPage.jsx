@@ -103,7 +103,13 @@ export default function CVEDetailPage() {
       {tab === 'exploit' && <ExploitTab cve={cve} />}
       {tab === 'plain' && <PlainEnglishTab cve={cve} />}
       {tab === 'remediation' && (
-        <RemediationTab cve={cve} explanation={storage.getCachedCve(cve.id)?.claudeExplanation} />
+        <RemediationTab
+          cve={cve}
+          explanation={
+            storage.getCachedCve(cve.id)?.aiExplanation ||
+            storage.getCachedCve(cve.id)?.claudeExplanation
+          }
+        />
       )}
     </div>
   );

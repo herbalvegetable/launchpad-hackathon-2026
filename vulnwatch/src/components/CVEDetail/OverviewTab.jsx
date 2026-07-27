@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
 import CvssGauge from '../CvssGauge';
-import { explainCVE, ClaudeApiError } from '../../utils/claudeApi';
+import { explainCVE, AgnesApiError } from '../../utils/agnesApi';
 import { storage } from '../../utils/storage';
 
 export default function OverviewTab({ cve }) {
-  const [explanation, setExplanation] = useState(cve._cached?.claudeExplanation || null);
+  const [explanation, setExplanation] = useState(
+    cve._cached?.aiExplanation || cve._cached?.claudeExplanation || null,
+  );
   const [loading, setLoading] = useState(!explanation);
   const [error, setError] = useState(null);
 
@@ -19,11 +21,11 @@ export default function OverviewTab({ cve }) {
       .then((result) => {
         if (cancelled) return;
         setExplanation(result);
-        storage.setCachedCve(cve.id, { ...cve._cached, id: cve.id, claudeExplanation: result });
+        storage.setCachedCve(cve.id, { ...cve._cached, id: cve.id, aiExplanation: result });
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(err instanceof ClaudeApiError ? err.message : 'Could not generate an explanation.');
+          setError(err instanceof AgnesApiError ? err.message : 'Could not generate an explanation.');
         }
       })
       .finally(() => {

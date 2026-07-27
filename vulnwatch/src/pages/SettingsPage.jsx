@@ -22,7 +22,7 @@ export default function SettingsPage() {
         <h1 className="font-display text-2xl font-semibold mb-1">Settings</h1>
         <p className="text-sm text-[var(--text-muted)]">
           Manage your team profile and the stack VulnWatch monitors.
-          {DEMO_MODE && ' Running in demo mode - live OpenCVE and Claude API calls are disabled.'}
+          {DEMO_MODE && ' Running in demo mode - live OpenCVE and Agnes AI API calls are disabled.'}
         </p>
       </div>
 

@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle, Copy, Check, Loader2 } from 'lucide-react';
-import { generateAnalogy, ClaudeApiError } from '../../utils/claudeApi';
+import { generateAnalogy, AgnesApiError } from '../../utils/agnesApi';
 import { storage } from '../../utils/storage';
 
 export default function PlainEnglishTab({ cve }) {
-  const [analogy, setAnalogy] = useState(cve._cached?.claudeAnalogy || null);
+  const [analogy, setAnalogy] = useState(
+    cve._cached?.aiAnalogy || cve._cached?.claudeAnalogy || null,
+  );
   const [loading, setLoading] = useState(!analogy);
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -19,11 +21,11 @@ export default function PlainEnglishTab({ cve }) {
       .then((result) => {
         if (cancelled) return;
         setAnalogy(result);
-        storage.setCachedCve(cve.id, { ...cve._cached, id: cve.id, claudeAnalogy: result });
+        storage.setCachedCve(cve.id, { ...cve._cached, id: cve.id, aiAnalogy: result });
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(err instanceof ClaudeApiError ? err.message : 'Could not generate an analogy.');
+          setError(err instanceof AgnesApiError ? err.message : 'Could not generate an analogy.');
         }
       })
       .finally(() => {

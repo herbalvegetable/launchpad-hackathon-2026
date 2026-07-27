@@ -44,7 +44,7 @@ flowcharts, and actionable patch guidance — filtered to each team's own tech s
 - [mermaid](https://mermaid.js.org) for exploit flowcharts
 - [html2canvas](https://html2canvas.hertzen.com) for PNG export
 - [OpenCVE API](https://www.opencve.io/api) for CVE data
-- [Anthropic API](https://docs.claude.com) for explanations, analogies, and
+- [Agnes AI API](https://agnes-ai.com/en/docs/overview) for explanations, analogies, and
   flowchart generation
 
 No paid component libraries, no backend — team profile, CVE cache, and
@@ -60,23 +60,27 @@ npm run dev
 ```
 
 The app starts in **demo mode** by default (`VITE_DEMO_MODE=true`), using seeded
-CVE data and canned Claude responses so you can explore every feature without any
+CVE data and canned AI responses so you can explore every feature without any
 API credentials.
 
 ## Environment variables
 
 Copy `.env.example` to `.env` and fill in your own values to go live:
 
-| Variable                | Description                                                                    |
-| ------------------------ | ------------------------------------------------------------------------------ |
-| `VITE_OPENCVE_BASE_URL`  | OpenCVE API base URL (`https://www.opencve.io`)                                |
-| `VITE_OPENCVE_USERNAME`  | Your OpenCVE account username                                                  |
-| `VITE_OPENCVE_PASSWORD`  | Your OpenCVE account password                                                  |
-| `VITE_CLAUDE_API_KEY`    | An Anthropic API key ([console.anthropic.com](https://console.anthropic.com))  |
-| `VITE_DEMO_MODE`         | `true` to use seeded data, `false` for live API calls                          |
+| Variable                   | Description                                                                    |
+| -------------------------- | ------------------------------------------------------------------------------ |
+| `VITE_OPENCVE_BASE_URL`    | OpenCVE API base URL (default: `https://app.opencve.io/api/v2`)                |
+| `VITE_OPENCVE_API_KEY`     | An OpenCVE organization API token (`opc_org.<token_id>.<secret>`)              |
+| `VITE_OPENCVE_USERNAME`    | Your OpenCVE account username (fallback if no API token is set)                |
+| `VITE_OPENCVE_PASSWORD`    | Your OpenCVE account password (fallback if no API token is set)                |
+| `VITE_AGNES_API_KEY`       | An Agnes AI API key ([platform.agnes-ai.com](https://platform.agnes-ai.com))   |
+| `VITE_AGNES_MODEL`         | Model name (default: `agnes-2.0-flash`)                                        |
+| `VITE_AGNES_API_BASE_URL`  | API base URL (default: `https://apihub.agnes-ai.com/v1`)                       |
+| `VITE_DEMO_MODE`           | `true` to use seeded data, `false` for live API calls                          |
 
-You'll need a free [OpenCVE](https://www.opencve.io) account for CVE data and an
-Anthropic API key for the AI-generated explanations, analogies, and flowcharts.
+You'll need an [OpenCVE](https://www.opencve.io) organization API token for CVE
+data and an Agnes AI API key for the AI-generated explanations, analogies, and
+flowcharts.
 
 ## Build & deploy
 
@@ -115,10 +119,10 @@ src/
     TeamProfileContext.jsx
   data/
     demoCves.js       # seeded CVE records
-    demoClaude.js      # canned explanations, analogies, mermaid code
+    demoAgnes.js       # canned explanations, analogies, mermaid code
   utils/
     opencveApi.js
-    claudeApi.js
+    agnesApi.js
     storage.js
     mermaidHelper.js
   pages/
@@ -137,7 +141,7 @@ Team profile, CVE cache, and remediation status are stored in `localStorage`
 under these keys:
 
 - `vulnwatch_team` — team name, id, and registered stack
-- `vulnwatch_cve_cache` — cached Claude responses per CVE, so a CVE is never
+- `vulnwatch_cve_cache` — cached AI responses per CVE, so a CVE is never
   re-sent to the API once explained
 - `vulnwatch_remediation` — per-CVE status, assignee, and notes
 

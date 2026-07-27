@@ -1,12 +1,14 @@
-import { demoClaudeExplanations, demoClaudeAnalogies, demoClaudeMermaid } from '../data/demoClaude';
+import { demoAgnesExplanations, demoAgnesAnalogies, demoAgnesMermaid } from '../data/demoAgnes';
 
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
-const API_KEY = import.meta.env.VITE_CLAUDE_API_KEY || '';
+const API_BASE = import.meta.env.VITE_AGNES_API_BASE_URL || 'https://apihub.agnes-ai.com/v1';
+const API_KEY = import.meta.env.VITE_AGNES_API_KEY || '';
+const MODEL = import.meta.env.VITE_AGNES_MODEL || 'agnes-2.0-flash';
 
-class ClaudeApiError extends Error {
+class AgnesApiError extends Error {
   constructor(message) {
     super(message);
-    this.name = 'ClaudeApiError';
+    this.name = 'AgnesApiError';
   }
 }
 
@@ -57,44 +59,45 @@ Use short node labels (under 8 words each). Make it readable at a glance.
 Respond with ONLY the raw Mermaid code block - no explanation, no markdown
 fences, just the graph TD ... content itself.`;
 
-async function callClaude(systemPrompt, userContent) {
+async function callAgnes(systemPrompt, userContent) {
   if (!API_KEY) {
-    throw new ClaudeApiError('No Claude API key configured. Enable demo mode or set VITE_CLAUDE_API_KEY.');
+    throw new AgnesApiError('No Agnes AI API key configured. Enable demo mode or set VITE_AGNES_API_KEY.');
   }
   let response;
   try {
-    response = await fetch('https://api.anthropic.com/v1/messages', {
+    response = await fetch(`${API_BASE}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': API_KEY,
-        'anthropic-version': '2023-06-01',
+        Authorization: `Bearer ${API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: MODEL,
         max_tokens: 1024,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userContent }],
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userContent },
+        ],
       }),
     });
   } catch (err) {
-    throw new ClaudeApiError('Could not reach the Claude API. Check your network connection.');
+    throw new AgnesApiError('Could not reach the Agnes AI API. Check your network connection.');
   }
 
   if (response.status === 401) {
-    throw new ClaudeApiError('Claude API authentication failed. Check VITE_CLAUDE_API_KEY.');
+    throw new AgnesApiError('Agnes AI API authentication failed. Check VITE_AGNES_API_KEY.');
   }
   if (response.status === 429) {
-    throw new ClaudeApiError('Claude API rate limit reached. Try again shortly.');
+    throw new AgnesApiError('Agnes AI API rate limit reached. Try again shortly.');
   }
   if (!response.ok) {
-    throw new ClaudeApiError(`Claude API request failed (${response.status}).`);
+    throw new AgnesApiError(`Agnes AI API request failed (${response.status}).`);
   }
 
   const data = await response.json();
-  const textBlock = (data.content || []).find((b) => b.type === 'text');
-  if (!textBlock) throw new ClaudeApiError('Claude API returned an empty response.');
-  return textBlock.text;
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) throw new AgnesApiError('Agnes AI API returned an empty response.');
+  return content;
 }
 
 function simulateLatency(ms = 600) {
@@ -108,7 +111,7 @@ function simulateLatency(ms = 600) {
 export async function explainCVE(cveData) {
   if (DEMO_MODE) {
     await simulateLatency();
-    const canned = demoClaudeExplanations[cveData.id];
+    const canned = demoAgnesExplanations[cveData.id];
     if (canned) return canned;
     return {
       oneLiner: 'No canned explanation available for this CVE in demo mode.',
@@ -119,11 +122,11 @@ export async function explainCVE(cveData) {
       severity: cveData.severity || 'NONE',
     };
   }
-  const raw = await callClaude(EXPLAIN_SYSTEM_PROMPT, JSON.stringify(cveData));
+  const raw = await callAgnes(EXPLAIN_SYSTEM_PROMPT, JSON.stringify(cveData));
   try {
     return JSON.parse(raw.trim().replace(/^```json\s*|\s*```$/g, ''));
   } catch (err) {
-    throw new ClaudeApiError('Claude returned a response that could not be parsed as JSON.');
+    throw new AgnesApiError('Agnes AI returned a response that could not be parsed as JSON.');
   }
 }
 
@@ -134,12 +137,12 @@ export async function generateAnalogy(cveData) {
   if (DEMO_MODE) {
     await simulateLatency();
     return (
-      demoClaudeAnalogies[cveData.id] ||
+      demoAgnesAnalogies[cveData.id] ||
       'No canned analogy available for this CVE in demo mode.'
     );
   }
   const description = cveData.oneLiner || cveData.summary || JSON.stringify(cveData);
-  return callClaude(ANALOGY_SYSTEM_PROMPT, description);
+  return callAgnes(ANALOGY_SYSTEM_PROMPT, description);
 }
 
 /**
@@ -149,12 +152,12 @@ export async function generateMermaid(cveData) {
   if (DEMO_MODE) {
     await simulateLatency();
     return (
-      demoClaudeMermaid[cveData.id] ||
+      demoAgnesMermaid[cveData.id] ||
       `graph TD\n  A[Entry point] --> B[Exploit chain unavailable in demo mode]`
     );
   }
-  const raw = await callClaude(MERMAID_SYSTEM_PROMPT, JSON.stringify(cveData));
+  const raw = await callAgnes(MERMAID_SYSTEM_PROMPT, JSON.stringify(cveData));
   return raw.trim().replace(/^```(mermaid)?\s*|\s*```$/g, '');
 }
 
-export { ClaudeApiError };
+export { AgnesApiError };

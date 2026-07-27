@@ -1,7 +1,8 @@
 import { demoCves, demoVendorSuggestions } from '../data/demoCves';
 
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
-const BASE_URL = import.meta.env.VITE_OPENCVE_BASE_URL || 'https://www.opencve.io';
+const BASE_URL = import.meta.env.VITE_OPENCVE_BASE_URL || 'https://app.opencve.io/api/v2';
+const API_KEY = import.meta.env.VITE_OPENCVE_API_KEY || '';
 const USERNAME = import.meta.env.VITE_OPENCVE_USERNAME || '';
 const PASSWORD = import.meta.env.VITE_OPENCVE_PASSWORD || '';
 
@@ -14,8 +15,11 @@ class OpenCveError extends Error {
 }
 
 function authHeaders() {
+  // API v2 only supports organization API tokens (Bearer auth). Basic auth
+  // with a username/password is kept as a fallback for v1 deployments.
+  const authorization = API_KEY ? `Bearer ${API_KEY}` : 'Basic ' + btoa(`${USERNAME}:${PASSWORD}`);
   return {
-    Authorization: 'Basic ' + btoa(`${USERNAME}:${PASSWORD}`),
+    Authorization: authorization,
     'Content-Type': 'application/json',
   };
 }
@@ -34,7 +38,7 @@ async function liveFetch(path, params = {}) {
   }
 
   if (response.status === 401 || response.status === 403) {
-    throw new OpenCveError('OpenCVE authentication failed. Check your credentials in Settings.', response.status);
+    throw new OpenCveError('OpenCVE authentication failed. Check your API key or credentials.', response.status);
   }
   if (response.status === 429) {
     throw new OpenCveError('OpenCVE rate limit reached. Try again shortly.', 429);
@@ -68,19 +72,19 @@ function filterDemoCves({ search, vendor, product, cvss } = {}) {
 }
 
 /**
- * GET /api/cve - list/search CVEs
+ * GET /cves - list/search CVEs
  */
 export async function searchCves({ search, vendor, product, cvss, page = 1 } = {}) {
   if (DEMO_MODE) {
     const results = filterDemoCves({ search, vendor, product, cvss });
     return { results, count: results.length, page, pages: 1 };
   }
-  const data = await liveFetch('/api/cve', { search, vendor, product, cvss, page });
+  const data = await liveFetch('/cves', { search, vendor, product, cvss, page });
   return data;
 }
 
 /**
- * GET /api/cve/<CVE-ID> - full detail
+ * GET /cves/<CVE-ID> - full detail
  */
 export async function getCveDetail(cveId) {
   if (DEMO_MODE) {
@@ -88,7 +92,7 @@ export async function getCveDetail(cveId) {
     if (!found) throw new OpenCveError(`${cveId} was not found in demo data.`, 404);
     return found;
   }
-  const data = await liveFetch(`/api/cve/${cveId}`);
+  const data = await liveFetch(`/cves/${cveId}`);
   return data;
 }
 
@@ -109,7 +113,7 @@ export async function getCvesForStack(stack = []) {
 }
 
 /**
- * GET /api/vendors and /api/products - suggestions for the stack builder.
+ * GET /vendors - suggestions for the stack builder.
  */
 export async function searchVendorsProducts(query) {
   if (DEMO_MODE) {
@@ -119,7 +123,7 @@ export async function searchVendorsProducts(query) {
     );
   }
   try {
-    const vendorData = await liveFetch('/api/vendors', { search: query });
+    const vendorData = await liveFetch('/vendors', { search: query });
     return (vendorData.results || []).map((v) => ({ vendor: v.name, product: v.name }));
   } catch (err) {
     return [];
