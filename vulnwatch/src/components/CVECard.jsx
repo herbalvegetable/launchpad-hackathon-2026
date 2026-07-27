@@ -4,8 +4,18 @@ import SeverityBadge from './SeverityBadge';
 import RemediationBadge from './RemediationBadge';
 
 function firstVendorProduct(vendors = {}) {
-  const [vendor, products] = Object.entries(vendors)[0] || [];
-  return vendor ? `${vendor} / ${products?.[0] || '—'}` : 'Unknown vendor';
+  const entries = Object.entries(vendors || {});
+  if (!entries.length) return 'Unknown vendor';
+  const [vendor, products] = entries[0];
+  const product = products?.[0];
+  const label = product ? `${vendor} / ${product}` : vendor;
+  if (entries.length === 1) return label;
+  return `${label} +${entries.length - 1}`;
+}
+
+function formatCvss(score) {
+  if (score == null || Number.isNaN(score) || score <= 0) return 'CVSS —';
+  return `CVSS ${Number(score).toFixed(1)}`;
 }
 
 export default function CVECard({ cve, remediationStatus, isNew }) {
@@ -46,7 +56,7 @@ export default function CVECard({ cve, remediationStatus, isNew }) {
             <Calendar size={12} />
             {cve.published?.slice(0, 10)}
           </span>
-          <span>CVSS {cve.cvss?.v3?.toFixed(1)}</span>
+          <span>{formatCvss(cve.cvss?.v3)}</span>
         </div>
       </div>
     </button>

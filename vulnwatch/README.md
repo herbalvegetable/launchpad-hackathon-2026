@@ -18,12 +18,12 @@ flowcharts, and actionable patch guidance — filtered to each team's own tech s
 - **CVE feed** — real-time alerts scoped to your stack, polling every 5 minutes,
   with severity/vendor/remediation filters and a "New" badge on recent CVEs
 - **CVE detail view** — four tabs per vulnerability:
-  - **Overview** — CVSS v2/v3 gauges, CWE tags, affected versions, and a
+  - **Overview** — CVSS v3 gauge, CWE tags, affected versions, and a
     plain-language breakdown (what it is, what an attacker gains, how to fix it)
   - **Exploit Flowchart** — an auto-generated Mermaid diagram of the attack chain,
     exportable as PNG
   - **Plain English** — a jargon-free analogy for non-technical stakeholders, with
-    one-click copy
+    one-click copy and an Agnes AI–generated video explanation
   - **Remediation Tracker** — status (unreviewed / under analysis / risk accepted /
     patched), assignee, notes, and a patch checklist
 - **Search & browse** — debounced full-text CVE search independent of your stack,
@@ -69,18 +69,18 @@ Copy `.env.example` to `.env` and fill in your own values to go live:
 
 | Variable                   | Description                                                                    |
 | -------------------------- | ------------------------------------------------------------------------------ |
-| `VITE_OPENCVE_BASE_URL`    | OpenCVE API base URL (default: `https://app.opencve.io/api/v2`)                |
+| `VITE_OPENCVE_BASE_URL`    | Same-origin proxy path (default: `/api/opencve`)                               |
 | `VITE_OPENCVE_API_KEY`     | An OpenCVE organization API token (`opc_org.<token_id>.<secret>`)              |
 | `VITE_OPENCVE_USERNAME`    | Your OpenCVE account username (fallback if no API token is set)                |
 | `VITE_OPENCVE_PASSWORD`    | Your OpenCVE account password (fallback if no API token is set)                |
 | `VITE_AGNES_API_KEY`       | An Agnes AI API key ([platform.agnes-ai.com](https://platform.agnes-ai.com))   |
-| `VITE_AGNES_MODEL`         | Model name (default: `agnes-2.0-flash`)                                        |
+| `VITE_AGNES_MODEL`         | Chat model name (default: `agnes-2.0-flash`)                                   |
+| `VITE_AGNES_VIDEO_MODEL`   | Video model name (default: `agnes-video-v2.0`)                                 |
 | `VITE_AGNES_API_BASE_URL`  | API base URL (default: `https://apihub.agnes-ai.com/v1`)                       |
 | `VITE_DEMO_MODE`           | `true` to use seeded data, `false` for live API calls                          |
 
 You'll need an [OpenCVE](https://www.opencve.io) organization API token for CVE
-data and an Agnes AI API key for the AI-generated explanations, analogies, and
-flowcharts.
+data and an Agnes AI API key for explanations, analogies, flowcharts, and videos.
 
 ## Build & deploy
 

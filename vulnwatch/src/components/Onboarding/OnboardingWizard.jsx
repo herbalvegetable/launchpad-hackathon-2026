@@ -29,8 +29,7 @@ export default function OnboardingWizard({ onComplete }) {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--bg-base)] px-4">
-      <div className="w-full max-w-lg rounded-2xl border border-[var(--border)] bg-[var(--bg-panel)] p-8 relative overflow-hidden">
-        <div className="scan-line" />
+      <div className="w-full max-w-lg rounded-2xl border border-[var(--border)] bg-[var(--bg-panel)] p-8">
         <div className="flex items-center gap-2 mb-6">
           <ShieldHalf size={24} className="text-[var(--accent)]" />
           <h1 className="font-display text-xl font-semibold">Set up VulnWatch</h1>

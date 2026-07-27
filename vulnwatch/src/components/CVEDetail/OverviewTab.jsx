@@ -70,8 +70,7 @@ export default function OverviewTab({ cve }) {
           </ul>
         </div>
 
-        <div className="flex items-center justify-center gap-4">
-          <CvssGauge label="CVSS v2" score={cve.cvss?.v2 || 0} />
+        <div className="flex items-center justify-center">
           <CvssGauge label="CVSS v3" score={cve.cvss?.v3 || 0} />
         </div>
       </div>

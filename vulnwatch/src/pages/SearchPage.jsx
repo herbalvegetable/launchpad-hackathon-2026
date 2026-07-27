@@ -100,8 +100,8 @@ export default function SearchPage() {
       )}
 
       <div className="space-y-3">
-        {results.map((cve) => (
-          <CVECard key={cve.id} cve={cve} remediationStatus={remediation[cve.id]?.status} />
+        {results.map((cve, i) => (
+          <CVECard key={`${cve.id}-${i}`} cve={cve} remediationStatus={remediation[cve.id]?.status} />
         ))}
       </div>
 

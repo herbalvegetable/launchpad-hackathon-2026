@@ -2,8 +2,10 @@ import { demoAgnesExplanations, demoAgnesAnalogies, demoAgnesMermaid } from '../
 
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
 const API_BASE = import.meta.env.VITE_AGNES_API_BASE_URL || 'https://apihub.agnes-ai.com/v1';
+const API_ROOT = API_BASE.replace(/\/v1\/?$/, '');
 const API_KEY = import.meta.env.VITE_AGNES_API_KEY || '';
 const MODEL = import.meta.env.VITE_AGNES_MODEL || 'agnes-2.0-flash';
+const VIDEO_MODEL = import.meta.env.VITE_AGNES_VIDEO_MODEL || 'agnes-video-v2.0';
 
 class AgnesApiError extends Error {
   constructor(message) {
@@ -158,6 +160,121 @@ export async function generateMermaid(cveData) {
   }
   const raw = await callAgnes(MERMAID_SYSTEM_PROMPT, JSON.stringify(cveData));
   return raw.trim().replace(/^```(mermaid)?\s*|\s*```$/g, '');
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function createVideoTask(prompt) {
+  if (!API_KEY) {
+    throw new AgnesApiError('No Agnes AI API key configured. Enable demo mode or set VITE_AGNES_API_KEY.');
+  }
+
+  let response;
+  try {
+    response = await fetch(`${API_BASE}/videos`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: VIDEO_MODEL,
+        prompt,
+        width: 1152,
+        height: 768,
+        num_frames: 81,
+        frame_rate: 24,
+        negative_prompt: 'blurry, low quality, unreadable text overlays, watermark, logo',
+      }),
+    });
+  } catch (err) {
+    throw new AgnesApiError('Could not reach the Agnes AI video API. Check your network connection.');
+  }
+
+  if (response.status === 401) {
+    throw new AgnesApiError('Agnes AI API authentication failed. Check VITE_AGNES_API_KEY.');
+  }
+  if (response.status === 429 || response.status === 503) {
+    throw new AgnesApiError('Agnes AI video service is busy. Try again shortly.');
+  }
+  if (!response.ok) {
+    throw new AgnesApiError(`Agnes AI video request failed (${response.status}).`);
+  }
+
+  const data = await response.json();
+  const videoId = data.video_id || data.id || data.task_id;
+  if (!videoId) throw new AgnesApiError('Agnes AI did not return a video task id.');
+  return { videoId, status: data.status || 'queued', progress: data.progress ?? 0 };
+}
+
+async function pollVideoResult(videoId) {
+  const url = `${API_ROOT}/agnesapi?video_id=${encodeURIComponent(videoId)}&model_name=${encodeURIComponent(VIDEO_MODEL)}`;
+  let response;
+  try {
+    response = await fetch(url, {
+      headers: { Authorization: `Bearer ${API_KEY}`, Accept: 'application/json' },
+    });
+  } catch (err) {
+    throw new AgnesApiError('Could not poll Agnes AI video status. Check your network connection.');
+  }
+
+  if (!response.ok) {
+    throw new AgnesApiError(`Agnes AI video status check failed (${response.status}).`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Generate a short explainer video from plain-English text via Agnes Video.
+ * Polls until completed/failed. Optional onProgress({ status, progress }).
+ * Returns { url, videoId }.
+ */
+export async function generateExplanationVideo(explanation, { onProgress, signal } = {}) {
+  const prompt = String(explanation || '').trim();
+  if (!prompt) throw new AgnesApiError('No explanation text available to generate a video.');
+
+  if (DEMO_MODE) {
+    await simulateLatency(900);
+    onProgress?.({ status: 'completed', progress: 100 });
+    return {
+      url: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm',
+      videoId: 'demo-video',
+      demo: true,
+    };
+  }
+
+  const { videoId } = await createVideoTask(prompt);
+  onProgress?.({ status: 'queued', progress: 0 });
+
+  const started = Date.now();
+  const timeoutMs = 5 * 60 * 1000;
+
+  while (Date.now() - started < timeoutMs) {
+    if (signal?.aborted) throw new AgnesApiError('Video generation was cancelled.');
+
+    await sleep(3500);
+    if (signal?.aborted) throw new AgnesApiError('Video generation was cancelled.');
+
+    const result = await pollVideoResult(videoId);
+    const status = result.status || 'in_progress';
+    const progress = typeof result.progress === 'number' ? result.progress : 0;
+    onProgress?.({ status, progress });
+
+    if (status === 'completed') {
+      const url = result.metadata?.url || result.url;
+      if (!url) throw new AgnesApiError('Agnes AI finished the video but returned no URL.');
+      return { url, videoId };
+    }
+    if (status === 'failed') {
+      const message = result.error?.message || result.error || 'Video generation failed.';
+      throw new AgnesApiError(typeof message === 'string' ? message : 'Video generation failed.');
+    }
+  }
+
+  throw new AgnesApiError('Video generation timed out. Try again in a moment.');
 }
 
 export { AgnesApiError };

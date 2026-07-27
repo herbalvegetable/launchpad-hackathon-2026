@@ -46,26 +46,6 @@ html, body, #root {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
 }
 
-@keyframes scan {
-  0% { transform: translateY(-100%); opacity: 0; }
-  10% { opacity: 1; }
-  90% { opacity: 1; }
-  100% { transform: translateY(2200%); opacity: 0; }
-}
-
-.scan-line {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--accent), transparent);
-  animation: scan 4s linear infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .scan-line { animation: none; display: none; }
-}
-
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: var(--bg-base); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
