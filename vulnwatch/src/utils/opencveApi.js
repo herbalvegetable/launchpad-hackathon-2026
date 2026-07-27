@@ -1,4 +1,5 @@
-import { demoCves, demoVendorSuggestions } from '../data/demoCves';
+import { demoCves } from '../data/demoCves';
+import { searchPopularStacks } from '../data/popularStacks';
 
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
 // Same-origin proxy path — OpenCVE blocks direct browser CORS.
@@ -244,21 +245,11 @@ export async function getCvesForStack(stack = []) {
 }
 
 /**
- * GET /vendors - suggestions for the stack builder.
+ * Stack-builder suggestions from a curated local list of popular stacks.
+ * Does not call OpenCVE — vendor/product names are OpenCVE-compatible CPE ids.
  */
 export async function searchVendorsProducts(query) {
-  if (DEMO_MODE) {
-    const q = (query || '').toLowerCase();
-    return demoVendorSuggestions.filter(
-      (s) => s.vendor.includes(q) || s.product.includes(q)
-    );
-  }
-  try {
-    const vendorData = await liveFetch('/vendors', { search: query });
-    return (vendorData.results || []).map((v) => ({ vendor: v.name, product: v.name }));
-  } catch (err) {
-    return [];
-  }
+  return searchPopularStacks(query);
 }
 
 export { OpenCveError };
