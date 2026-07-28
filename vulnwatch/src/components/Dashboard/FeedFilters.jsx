@@ -6,7 +6,7 @@ const STATUSES = [
   { value: 'patched', label: 'Patched' },
 ];
 
-function Pill({ active, onClick, children }) {
+export function Pill({ active, onClick, children }) {
   return (
     <button
       onClick={onClick}

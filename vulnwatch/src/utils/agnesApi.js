@@ -1,4 +1,9 @@
-import { demoAgnesExplanations, demoAgnesAnalogies, demoAgnesMermaid } from '../data/demoAgnes';
+import {
+  demoAgnesExplanations,
+  demoAgnesAnalogies,
+  demoAgnesMermaid,
+  demoCodebaseAnalysis,
+} from '../data/demoAgnes';
 
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
 const API_BASE = import.meta.env.VITE_AGNES_API_BASE_URL || 'https://apihub.agnes-ai.com/v1';
@@ -61,7 +66,73 @@ Use short node labels (under 8 words each). Make it readable at a glance.
 Respond with ONLY the raw Mermaid code block - no explanation, no markdown
 fences, just the graph TD ... content itself.`;
 
-async function callAgnes(systemPrompt, userContent) {
+const CODEBASE_CVE_SYSTEM_PROMPT = `You are Agnes AI, an expert Application Security engineer performing
+Secure Code Review, Software Composition Analysis, and CVE applicability
+analysis on a codebase pasted in by the user (source code, manifests,
+Dockerfiles, IaC, architecture notes, etc).
+
+Follow this workflow strictly:
+1. Build an internal inventory of languages, frameworks, libraries,
+   third-party dependencies (with versions where determinable), runtime,
+   infrastructure, databases, cloud services, authentication mechanisms,
+   APIs, containers, and build systems. Never invent a version - if it
+   cannot be determined from the supplied text, use "UNKNOWN".
+2. For each dependency, only proceed if there is evidence it is actually
+   used/imported/reachable, not just mentioned or a dev-only dependency.
+3. Compare against known, real CVEs. Never fabricate a CVE ID. Never
+   report a CVE just because a framework or language name matches -
+   versions must be checked whenever a version is known.
+4. Assign confidence honestly:
+   - "CONFIRMED": strong evidence (name + version) proves it.
+   - "LIKELY": high confidence but version/config is incomplete.
+   - "POSSIBLE": technology matches but evidence is thin.
+   If evidence is very weak, omit the finding rather than force a POSSIBLE.
+
+Respond ONLY in this exact JSON shape, no markdown, no commentary outside it:
+{
+  "inventory": {
+    "languages": ["string"],
+    "frameworks": ["string"],
+    "libraries": ["string"],
+    "dependencies": [{ "name": "string", "version": "string", "type": "runtime" | "dev" | "unknown" }],
+    "runtime": "string",
+    "infrastructure": ["string"],
+    "databases": ["string"],
+    "cloudServices": ["string"],
+    "authMechanisms": ["string"],
+    "apis": ["string"],
+    "containers": ["string"],
+    "buildSystems": ["string"]
+  },
+  "findings": [
+    {
+      "cveId": "string",
+      "severity": "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "NONE",
+      "cvssScore": number,
+      "confidence": "CONFIRMED" | "LIKELY" | "POSSIBLE",
+      "affectedComponent": "string",
+      "detectedVersion": "string",
+      "vulnerableVersionRange": "string",
+      "evidenceFound": "string",
+      "whyAffected": "string",
+      "businessImpact": "string",
+      "recommendedFix": "string",
+      "fixedVersion": "string",
+      "references": ["string"]
+    }
+  ],
+  "overallRiskRating": "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "MINIMAL",
+  "recommendedImmediateActions": ["string"]
+}
+If no applicable CVEs are found, return an empty "findings" array rather
+than forcing a result - accuracy matters more than quantity.`;
+
+// Client-side ceiling on pasted input so a single paste can't blow the
+// request payload / token budget. The textarea in the UI enforces the
+// same limit and shows a live counter.
+const MAX_CODEBASE_INPUT_LENGTH = 20000;
+
+async function callAgnes(systemPrompt, userContent, { maxTokens = 1024 } = {}) {
   if (!API_KEY) {
     throw new AgnesApiError('No Agnes AI API key configured. Enable demo mode or set VITE_AGNES_API_KEY.');
   }
@@ -75,7 +146,7 @@ async function callAgnes(systemPrompt, userContent) {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 1024,
+        max_tokens: maxTokens,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userContent },
@@ -160,6 +231,46 @@ export async function generateMermaid(cveData) {
   }
   const raw = await callAgnes(MERMAID_SYSTEM_PROMPT, JSON.stringify(cveData));
   return raw.trim().replace(/^```(mermaid)?\s*|\s*```$/g, '');
+}
+
+/**
+ * Codebase CVE Analysis. Takes raw pasted evidence (source, manifests,
+ * Dockerfiles, IaC, architecture notes, ...) and returns
+ * { inventory, findings, overallRiskRating, recommendedImmediateActions }
+ * as described in CODEBASE_CVE_SYSTEM_PROMPT.
+ */
+export async function analyzeCodebaseForCves(codebaseText) {
+  const trimmed = String(codebaseText || '').trim();
+  if (!trimmed) {
+    throw new AgnesApiError('Paste some source code, manifests, or architecture notes to analyse.');
+  }
+  if (trimmed.length > MAX_CODEBASE_INPUT_LENGTH) {
+    throw new AgnesApiError(
+      `Input is too large (${trimmed.length.toLocaleString()} characters). Trim it to under ${MAX_CODEBASE_INPUT_LENGTH.toLocaleString()} characters and try again.`
+    );
+  }
+
+  if (DEMO_MODE) {
+    await simulateLatency(1400);
+    return demoCodebaseAnalysis;
+  }
+
+  const raw = await callAgnes(CODEBASE_CVE_SYSTEM_PROMPT, trimmed, { maxTokens: 4096 });
+  let parsed;
+  try {
+    parsed = JSON.parse(raw.trim().replace(/^```json\s*|\s*```$/g, ''));
+  } catch (err) {
+    throw new AgnesApiError('Agnes AI returned a response that could not be parsed as JSON.');
+  }
+
+  return {
+    inventory: parsed.inventory || {},
+    findings: Array.isArray(parsed.findings) ? parsed.findings : [],
+    overallRiskRating: parsed.overallRiskRating || 'MINIMAL',
+    recommendedImmediateActions: Array.isArray(parsed.recommendedImmediateActions)
+      ? parsed.recommendedImmediateActions
+      : [],
+  };
 }
 
 function sleep(ms) {
@@ -277,4 +388,4 @@ export async function generateExplanationVideo(explanation, { onProgress, signal
   throw new AgnesApiError('Video generation timed out. Try again in a moment.');
 }
 
-export { AgnesApiError };
+export { AgnesApiError, MAX_CODEBASE_INPUT_LENGTH };

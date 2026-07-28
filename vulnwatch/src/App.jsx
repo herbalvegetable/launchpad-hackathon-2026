@@ -7,6 +7,8 @@ import CVEDetailPage from './pages/CVEDetailPage';
 import SearchPage from './pages/SearchPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import SettingsPage from './pages/SettingsPage';
+import TeamPage from './pages/TeamPage';
+import CodebaseAnalysisPage from './pages/CodebaseAnalysisPage';
 
 export default function App() {
   const { team, saveTeam } = useTeamProfile();
@@ -29,6 +31,8 @@ export default function App() {
         <Route path="/cve/:cveId" element={<CVEDetailPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
+        <Route path="/team" element={<TeamPage />} />
+        <Route path="/codebase-analysis" element={<CodebaseAnalysisPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Routes>
     </div>

@@ -173,3 +173,79 @@ export const demoAgnesMermaid = {
   F --> G[Version patched to 5.2.1]
   G --> H[Exploit blocked]`,
 };
+
+// Canned response for the Codebase CVE Analysis feature (VITE_DEMO_MODE=true).
+// Fixed regardless of what the user pastes in, since demo mode has no live
+// model to actually reason over arbitrary input - it exists to demo the UI.
+export const demoCodebaseAnalysis = {
+  inventory: {
+    languages: ['JavaScript (Node.js)', 'YAML'],
+    frameworks: ['React 19', 'Express 4.18'],
+    libraries: ['orbit-gateway-client', 'jsonwebtoken', 'lodash'],
+    dependencies: [
+      { name: 'orbit-gateway-client', version: '4.0.3', type: 'runtime' },
+      { name: 'jsonwebtoken', version: '8.5.1', type: 'runtime' },
+      { name: 'lodash', version: '4.17.21', type: 'runtime' },
+      { name: 'express', version: '4.18.2', type: 'runtime' },
+      { name: 'nodemon', version: '3.0.1', type: 'dev' },
+    ],
+    runtime: 'Node.js 18.x',
+    infrastructure: ['Docker', 'AWS ECS'],
+    databases: ['PostgreSQL 14'],
+    cloudServices: ['AWS ECS', 'AWS RDS'],
+    authMechanisms: ['JWT bearer tokens'],
+    apis: ['Internal REST API', 'Orbit Gateway management API'],
+    containers: ['node:18-alpine base image'],
+    buildSystems: ['npm', 'Docker multi-stage build'],
+  },
+  findings: [
+    {
+      cveId: 'CVE-2024-31337',
+      severity: 'CRITICAL',
+      cvssScore: 9.8,
+      confidence: 'CONFIRMED',
+      affectedComponent: 'orbit-gateway-client',
+      detectedVersion: '4.0.3',
+      vulnerableVersionRange: '< 4.2.1, and all 4.0.x',
+      evidenceFound:
+        'package.json pins "orbit-gateway-client": "4.0.3", and the supplied code imports and calls it directly against the management endpoint (no version override found elsewhere).',
+      whyAffected:
+        'The detected version 4.0.3 falls inside the vulnerable 4.0.x range, and the client is actively used to reach the management endpoint described in the advisory - not just declared as an unused dependency.',
+      businessImpact:
+        'Unauthenticated remote command execution with elevated privileges on any host running this client against the management endpoint - full compromise of the affected service.',
+      recommendedFix: 'Upgrade orbit-gateway-client to 4.2.1 or later and redeploy.',
+      fixedVersion: '4.2.1',
+      references: [
+        'https://orbit-networks.example/security/advisories/OGW-2026-01',
+        'https://nvd.nist.gov/vuln/detail/CVE-2024-31337',
+      ],
+    },
+    {
+      cveId: 'CVE-2023-39112',
+      severity: 'LOW',
+      cvssScore: 3.9,
+      confidence: 'LIKELY',
+      affectedComponent: 'Harbor Notify (internal notification service)',
+      detectedVersion: 'UNKNOWN',
+      vulnerableVersionRange: '5.0 - 5.2',
+      evidenceFound:
+        'A route referencing "harbor-notify" and a "/debug" path appears in the supplied config, but no explicit version pin was found for this internal service.',
+      whyAffected:
+        'The service name and an exposed debug-style route match the advisory pattern, but without a confirmed version this cannot be raised to Confirmed.',
+      businessImpact:
+        'If the deployed version falls in the vulnerable range, low-privilege API keys could read internal hostnames and configuration useful for planning further attacks.',
+      recommendedFix: 'Confirm the deployed Harbor Notify version; if in range, upgrade to 5.2.1+ and disable the debug endpoint in production.',
+      fixedVersion: '5.2.1',
+      references: [
+        'https://nvd.nist.gov/vuln/detail/CVE-2023-39112',
+      ],
+    },
+  ],
+  overallRiskRating: 'CRITICAL',
+  recommendedImmediateActions: [
+    'Upgrade orbit-gateway-client to 4.2.1+ immediately - this is a remotely exploitable, unauthenticated critical finding.',
+    'Block external network access to the Orbit Gateway management endpoint until patched.',
+    'Confirm the deployed Harbor Notify version to resolve the Likely finding to Confirmed or dismiss it.',
+    'Re-run this analysis after patching to verify no findings remain.',
+  ],
+};

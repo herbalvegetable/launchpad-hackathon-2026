@@ -4,8 +4,10 @@ import { useTeamProfile } from '../context/TeamProfileContext';
 import { getCvesForStack, OpenCveError } from '../utils/opencveApi';
 import { demoDailyCounts } from '../data/demoCves';
 import { storage } from '../utils/storage';
-import { SeverityBarChart, CvesPerDayChart, RemediationPieChart } from '../components/Dashboard/SeverityCharts';
+import { getOrganization, getAssignedIssues } from '../utils/orgUtils';
+import { SeverityBarChart, CvesPerDayChart, RemediationPieChart, AssigneeBarChart } from '../components/Dashboard/SeverityCharts';
 import SeverityBadge from '../components/SeverityBadge';
+import AssignedIssuesList from '../components/AssignedIssuesList';
 
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
 
@@ -53,6 +55,22 @@ export default function AnalyticsPage() {
       .sort((a, b) => (b.cvss?.v3 || 0) - (a.cvss?.v3 || 0))
       .slice(0, 5);
   }, [cves, remediation]);
+
+  // Driven by the remediation store directly (not the stack-filtered `cves`
+  // list) so an assignment shows up here even if the CVE was found via
+  // search rather than the team's registered stack.
+  const assignedByMember = useMemo(() => {
+    const organization = getOrganization();
+    return getAssignedIssues(organization.id).filter((entry) => entry.issues.length > 0);
+  }, [remediation]);
+
+  const assigneeCounts = useMemo(
+    () =>
+      assignedByMember
+        .map((entry) => ({ name: entry.member.name, count: entry.issues.length }))
+        .sort((a, b) => b.count - a.count),
+    [assignedByMember]
+  );
 
   const dailyCounts = DEMO_MODE ? demoDailyCounts() : [];
 
@@ -131,6 +149,36 @@ export default function AnalyticsPage() {
             Remediation progress
           </h2>
           <RemediationPieChart statusCounts={statusCounts} />
+        </div>
+
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-panel)] p-5 md:col-span-2">
+          <h2 className="text-xs uppercase tracking-wider text-[var(--text-faint)] font-mono mb-3">
+            CVEs by assignee
+          </h2>
+          <AssigneeBarChart assigneeCounts={assigneeCounts} />
+        </div>
+
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-panel)] p-5 md:col-span-2">
+          <h2 className="text-xs uppercase tracking-wider text-[var(--text-faint)] font-mono mb-3">
+            Assigned issues by member
+          </h2>
+          {assignedByMember.length === 0 ? (
+            <p className="text-sm text-[var(--text-muted)]">No CVEs assigned to a team member yet.</p>
+          ) : (
+            <div className="grid sm:grid-cols-2 gap-5">
+              {assignedByMember.map((entry) => (
+                <div key={entry.member.id}>
+                  <p className="text-sm font-medium mb-2">
+                    {entry.member.name}{' '}
+                    <span className="text-xs font-normal text-[var(--text-faint)]">
+                      ({entry.issues.length})
+                    </span>
+                  </p>
+                  <AssignedIssuesList issues={entry.issues} />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

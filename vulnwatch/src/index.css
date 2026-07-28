@@ -54,3 +54,23 @@ html, body, #root {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+/* Used by the Codebase CVE Analysis "Export PDF" button (utils/exportUtils.js)
+   to print just the results dashboard via the browser's print-to-PDF. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  [data-print-area],
+  [data-print-area] * {
+    visibility: visible;
+  }
+  [data-print-area] {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

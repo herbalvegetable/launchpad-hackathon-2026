@@ -6,6 +6,7 @@ const KEYS = {
   REMEDIATION: 'vulnwatch_remediation',
   LAST_VISIT: 'vulnwatch_last_visit',
   ORG_STATE: 'vulnwatch_org_state',
+  CODEBASE_ANALYSIS: 'vulnwatch_codebase_analysis',
 };
 
 function read(key, fallback) {
@@ -87,6 +88,20 @@ export const storage = {
       return true;
     } catch (err) {
       console.error('Storage clear failed for ORG_STATE:', err);
+      return false;
+    }
+  },
+
+  // Last Codebase CVE Analysis run, so results survive a page refresh/nav
+  // away, same pattern as the org state above.
+  getCodebaseAnalysis: () => read(KEYS.CODEBASE_ANALYSIS, null),
+  setCodebaseAnalysis: (record) => write(KEYS.CODEBASE_ANALYSIS, record),
+  clearCodebaseAnalysis: () => {
+    try {
+      localStorage.removeItem(KEYS.CODEBASE_ANALYSIS);
+      return true;
+    } catch (err) {
+      console.error('Storage clear failed for CODEBASE_ANALYSIS:', err);
       return false;
     }
   },

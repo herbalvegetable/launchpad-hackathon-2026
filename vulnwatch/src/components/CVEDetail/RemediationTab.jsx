@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, ChevronDown } from 'lucide-react';
 import { storage } from '../../utils/storage';
+import { getOrganization, getAllMembers } from '../../utils/orgUtils';
 
 const STATUS_OPTIONS = [
   { value: 'unreviewed', label: 'Unreviewed' },
@@ -12,14 +13,29 @@ const STATUS_OPTIONS = [
 export default function RemediationTab({ cve, explanation }) {
   const [record, setRecord] = useState(() => storage.getRemediationFor(cve.id));
   const [notesDraft, setNotesDraft] = useState(record.notes);
+  const [members] = useState(() => getAllMembers(getOrganization().id));
+
+  // Snapshot the CVE's severity/summary onto the remediation record itself,
+  // so the Team/Analytics pages can list a member's assigned issues without
+  // needing to re-fetch or already have this CVE in the team's live stack.
+  function snapshot() {
+    return { severity: cve.severity, cvssScore: cve.cvss?.v3 ?? null, summary: cve.summary || '' };
+  }
 
   function updateStatus(status) {
-    const updated = storage.setRemediationFor(cve.id, { status });
+    const updated = storage.setRemediationFor(cve.id, { ...snapshot(), status });
     setRecord(updated);
   }
 
   function updateAssignee(assignedTo) {
-    const updated = storage.setRemediationFor(cve.id, { assignedTo });
+    // Assigning someone is an implicit acknowledgement - move an untouched
+    // CVE out of "unreviewed" so the assignment actually shows up in the
+    // analytics dashboard's remediation-progress breakdown.
+    const patch = { ...snapshot(), assignedTo };
+    if (assignedTo && record.status === 'unreviewed') {
+      patch.status = 'under_analysis';
+    }
+    const updated = storage.setRemediationFor(cve.id, patch);
     setRecord(updated);
   }
 
@@ -57,12 +73,31 @@ export default function RemediationTab({ cve, explanation }) {
             <label className="block text-xs uppercase tracking-wider text-[var(--text-faint)] font-mono mb-2">
               Assigned to
             </label>
-            <input
-              value={record.assignedTo}
-              onChange={(e) => updateAssignee(e.target.value)}
-              placeholder="Team member name"
-              className="w-full px-3 py-2 rounded-lg bg-[var(--bg-panel-raised)] border border-[var(--border)] text-sm placeholder:text-[var(--text-faint)] focus:border-[var(--accent)] outline-none"
-            />
+            <div className="relative">
+              <select
+                value={record.assignedTo}
+                onChange={(e) => updateAssignee(e.target.value)}
+                disabled={members.length === 0}
+                className="w-full appearance-none px-3 py-2 pr-8 rounded-lg bg-[var(--bg-panel-raised)] border border-[var(--border)] text-sm focus:border-[var(--accent)] outline-none disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <option value="">Unassigned</option>
+                {members.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                    {m.teamName ? ` — ${m.teamName}` : ''}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                size={14}
+                className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-faint)]"
+              />
+            </div>
+            {members.length === 0 && (
+              <p className="mt-1.5 text-xs text-[var(--text-faint)]">
+                No team members yet — add some on the Team page.
+              </p>
+            )}
           </div>
 
           <div>

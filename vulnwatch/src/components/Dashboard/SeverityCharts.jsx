@@ -64,6 +64,39 @@ export function CvesPerDayChart({ dailyCounts }) {
   );
 }
 
+export function AssigneeBarChart({ assigneeCounts }) {
+  if (assigneeCounts.length === 0) {
+    return (
+      <p className="text-sm text-[var(--text-muted)] py-8 text-center">
+        No CVEs assigned to a team member yet.
+      </p>
+    );
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height={Math.max(160, assigneeCounts.length * 36)}>
+      <BarChart
+        data={assigneeCounts}
+        layout="vertical"
+        margin={{ top: 8, right: 16, left: 8, bottom: 0 }}
+      >
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--border-soft)" horizontal={false} />
+        <XAxis type="number" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
+        <YAxis
+          type="category"
+          dataKey="name"
+          width={120}
+          tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
+          axisLine={{ stroke: 'var(--border)' }}
+          tickLine={false}
+        />
+        <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'var(--bg-panel)' }} />
+        <Bar dataKey="count" fill="var(--accent)" radius={[0, 6, 6, 0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
 export function RemediationPieChart({ statusCounts }) {
   const data = Object.entries(statusCounts).map(([status, count]) => ({
     name: STATUS_STYLES[status]?.label || status,

@@ -1,12 +1,14 @@
 import { NavLink } from 'react-router-dom';
-import { ShieldHalf, LayoutGrid, Search, BarChart3, Settings } from 'lucide-react';
+import { ShieldHalf, LayoutGrid, Search, BarChart3, Settings, Users, ScanSearch } from 'lucide-react';
 
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
 
 const links = [
+  { to: '/codebase-analysis', label: 'Codebase Analysis', icon: ScanSearch },
   { to: '/', label: 'Feed', icon: LayoutGrid, end: true },
   { to: '/search', label: 'Search', icon: Search },
   { to: '/analytics', label: 'Analytics', icon: BarChart3 },
+  { to: '/team', label: 'Team', icon: Users },
   { to: '/settings', label: 'Settings', icon: Settings },
 ];
 
