@@ -5,6 +5,7 @@ const KEYS = {
   CVE_CACHE: 'vulnwatch_cve_cache',
   REMEDIATION: 'vulnwatch_remediation',
   LAST_VISIT: 'vulnwatch_last_visit',
+  ORG_STATE: 'vulnwatch_org_state',
 };
 
 function read(key, fallback) {
@@ -74,6 +75,21 @@ export const storage = {
 
   getLastVisit: () => read(KEYS.LAST_VISIT, null),
   setLastVisit: (iso) => write(KEYS.LAST_VISIT, iso),
+
+  // Mock org/team/member/CVE-assignment state (see utils/orgUtils.js).
+  // `fallback` lets the caller pass the seed data on first read, since this
+  // key won't exist in localStorage until something writes to it.
+  getOrgState: (fallback = null) => read(KEYS.ORG_STATE, fallback),
+  setOrgState: (state) => write(KEYS.ORG_STATE, state),
+  clearOrgState: () => {
+    try {
+      localStorage.removeItem(KEYS.ORG_STATE);
+      return true;
+    } catch (err) {
+      console.error('Storage clear failed for ORG_STATE:', err);
+      return false;
+    }
+  },
 };
 
 export const STORAGE_KEYS = KEYS;

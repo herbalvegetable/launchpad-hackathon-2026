@@ -1,0 +1,89 @@
+{
+  "organization": {
+    "id": "org_launchpad01",
+    "name": "Launchpad Robotics Inc.",
+    "plan": "team",
+    "createdAt": "2026-01-14T00:00:00Z"
+  },
+  "teams": [
+    {
+      "id": "team_sec01",
+      "orgId": "org_launchpad01",
+      "name": "Security Team",
+      "description": "Vulnerability triage, threat response, and compliance.",
+      "memberIds": ["mem_001", "mem_002", "mem_003"]
+    },
+    {
+      "id": "team_devops01",
+      "orgId": "org_launchpad01",
+      "name": "DevOps Team",
+      "description": "Infrastructure, deployments, and patch rollout.",
+      "memberIds": ["mem_004", "mem_005"]
+    }
+  ],
+  "members": [
+    {
+      "id": "mem_001",
+      "orgId": "org_launchpad01",
+      "teamId": "team_sec01",
+      "name": "Priya Nandakumar",
+      "email": "priya.nandakumar@launchpad.dev",
+      "role": "Security Lead"
+    },
+    {
+      "id": "mem_002",
+      "orgId": "org_launchpad01",
+      "teamId": "team_sec01",
+      "name": "Marcus Odell",
+      "email": "marcus.odell@launchpad.dev",
+      "role": "Security Analyst"
+    },
+    {
+      "id": "mem_003",
+      "orgId": "org_launchpad01",
+      "teamId": "team_sec01",
+      "name": "Jin Sato",
+      "email": "jin.sato@launchpad.dev",
+      "role": "Security Analyst"
+    },
+    {
+      "id": "mem_004",
+      "orgId": "org_launchpad01",
+      "teamId": "team_devops01",
+      "name": "Aaliyah Brooks",
+      "email": "aaliyah.brooks@launchpad.dev",
+      "role": "DevOps Engineer"
+    },
+    {
+      "id": "mem_005",
+      "orgId": "org_launchpad01",
+      "teamId": "team_devops01",
+      "name": "Diego Fuentes",
+      "email": "diego.fuentes@launchpad.dev",
+      "role": "Site Reliability Engineer"
+    }
+  ],
+  "cveAssignments": [
+    {
+      "cveId": "CVE-2024-31337",
+      "teamId": "team_sec01",
+      "assigneeId": "mem_001",
+      "status": "under_analysis",
+      "assignedAt": "2026-05-03T09:00:00Z"
+    },
+    {
+      "cveId": "CVE-2024-28812",
+      "teamId": "team_sec01",
+      "assigneeId": "mem_002",
+      "status": "patched",
+      "assignedAt": "2026-04-19T11:30:00Z"
+    },
+    {
+      "cveId": "CVE-2024-29901",
+      "teamId": "team_devops01",
+      "assigneeId": "mem_004",
+      "status": "unreviewed",
+      "assignedAt": null
+    }
+  ]
+}
