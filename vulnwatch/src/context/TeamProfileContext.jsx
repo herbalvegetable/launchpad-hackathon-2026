@@ -17,6 +17,7 @@ export function TeamProfileProvider({ children }) {
         id: prev?.id || makeId(),
         name: partial.name ?? prev?.name ?? '',
         stack: partial.stack ?? prev?.stack ?? [],
+        onboarded: partial.onboarded ?? prev?.onboarded ?? false,
         createdAt: prev?.createdAt || now,
         updatedAt: now,
       };

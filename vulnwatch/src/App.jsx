@@ -11,16 +11,10 @@ import TeamPage from './pages/TeamPage';
 import CodebaseAnalysisPage from './pages/CodebaseAnalysisPage';
 
 export default function App() {
-  const { team, saveTeam } = useTeamProfile();
+  const { team } = useTeamProfile();
 
-  if (!team) {
-    return (
-      <OnboardingWizard
-        onComplete={() => {
-          if (!team) saveTeam({ name: 'My team', stack: [] });
-        }}
-      />
-    );
+  if (!team || team.onboarded === false) {
+    return <OnboardingWizard />;
   }
 
   return (

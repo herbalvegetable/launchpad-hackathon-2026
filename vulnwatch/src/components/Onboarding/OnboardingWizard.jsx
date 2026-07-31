@@ -5,7 +5,7 @@ import { useTeamProfile } from '../../context/TeamProfileContext';
 
 const STEPS = ['Team name', 'Build your stack', 'Confirm'];
 
-export default function OnboardingWizard({ onComplete }) {
+export default function OnboardingWizard() {
   const { saveTeam, addStackItem, removeStackItem, team } = useTeamProfile();
   const [step, setStep] = useState(0);
   const [name, setName] = useState(team?.name || '');
@@ -23,8 +23,7 @@ export default function OnboardingWizard({ onComplete }) {
   }
 
   function finish() {
-    saveTeam({ name: name.trim() || 'My team', stack });
-    onComplete();
+    saveTeam({ name: name.trim() || 'My team', stack, onboarded: true });
   }
 
   return (
@@ -124,12 +123,14 @@ export default function OnboardingWizard({ onComplete }) {
           )}
         </div>
 
-        <button
-          onClick={finish}
-          className="w-full text-center mt-4 text-xs text-[var(--text-faint)] hover:text-[var(--text-muted)]"
-        >
-          Skip for now
-        </button>
+        {step === 1 && (
+          <button
+            onClick={finish}
+            className="w-full text-center mt-4 text-xs text-[var(--text-faint)] hover:text-[var(--text-muted)]"
+          >
+            Skip for now
+          </button>
+        )}
       </div>
     </div>
   );
