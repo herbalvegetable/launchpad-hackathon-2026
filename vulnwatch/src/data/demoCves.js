@@ -3048,15 +3048,84 @@ export function demoDailyCounts() {
   return days;
 }
 
-export const demoVendorSuggestions = [
-  { vendor: 'orbit-networks', product: 'orbit-gateway' },
-  { vendor: 'ledgerly', product: 'ledgerly-erp' },
-  { vendor: 'nimbus-id', product: 'nimbus-auth' },
-  { vendor: 'fernwood', product: 'fernwood-cms' },
-  { vendor: 'relaystack', product: 'relay-queue' },
-  { vendor: 'harborsoft', product: 'harbor-notify' },
-  { vendor: 'nginx', product: 'nginx' },
-  { vendor: 'postgresql', product: 'postgresql' },
-  { vendor: 'openssl', product: 'openssl' },
-  { vendor: 'kubernetes', product: 'kubernetes' },
-];
+function titleCaseFromSlug(slug) {
+  return slug
+    .split('-')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
+// Built directly from demoCves' vendor/product pairs (deduped) so the
+// stack-builder autocomplete in demo mode can never suggest a vendor/product
+// combo that has zero matching demo CVEs. Do not hand-maintain this list —
+// it stays in sync automatically as demoCves grows.
+// Teams created before the stack-builder was made demo-aware may have real
+// vendor/product names (nginx, docker, postgresql, ...) saved in their
+// stack. Rather than inventing fake CVE claims about real software, we
+// alias each one to the existing fictional demo record closest in category
+// (proxy -> proxy, database -> database, kernel -> kernel, etc.) so Feed
+// and Analytics still populate instead of silently showing nothing.
+export const demoVendorAliases = {
+  'nginx/nginx': 'gannet/gannet-proxy',
+  'apache/http_server': 'chukar/chukar-gateway',
+  'postgresql/postgresql': 'merganser/merganser-db',
+  'mysql/mysql': 'marlin/marlin-nosql',
+  'mongodb/mongodb': 'marlin/marlin-nosql',
+  'redis/redis': 'grebe/grebe-observability',
+  'sqlite/sqlite': 'limpkin/limpkin-orm',
+  'openssl/openssl': 'dunnart/dunnart-tls',
+  'linux/linux_kernel': 'fulmar/fulmar-os-kernel',
+  'canonical/ubuntu_linux': 'wombat/wombat-os',
+  'debian/debian_linux': 'bandicoot/bandicoot-runtime',
+  'redhat/enterprise_linux': 'quokka/quokka-hypervisor',
+  'amazon/amazon_linux': 'numbat/numbat-gpu-driver',
+  'microsoft/windows_10': 'cinnamon/cinnamon-desktop',
+  'docker/docker': 'crake/crake-operator',
+  'kubernetes/kubernetes': 'loon/loon-cluster',
+  'python/python': 'jacana/jacana-script-engine',
+  'php/php': 'sanderling/sanderling-parser',
+  'go/go': 'skate/skate-package-manager',
+  'expressjs/express': 'stilt/stilt-dashboard',
+  'angular/angular': 'snipe/snipe-editor',
+  'spring/spring_framework': 'egret/egret-automations',
+  'laravel/framework': 'harrier/harrier-wiki',
+  'wordpress/wordpress': 'grackle/grackle-portal',
+  'google/chrome': 'pinecone/pinecone-browser',
+  'mozilla/firefox': 'pinecone/pinecone-browser',
+  'oracle/jdk': 'tanager/tanager-runtime',
+  'elastic/elasticsearch': 'grebe/grebe-search',
+  'hashicorp/terraform': 'crake/crake-terraform-provider',
+  'gitlab/gitlab': 'turnstone/turnstone-collaboration',
+  'jenkins/jenkins': 'trawler/trawler-ci',
+  'vmware/vsphere': 'quokka/quokka-hypervisor',
+  'fortinet/fortios': 'nautilus/nautilus-vpn-appliance',
+  'cisco/ios': 'squill/squill-sd-wan',
+};
+
+export const demoVendorSuggestions = (() => {
+  const seen = new Map();
+  demoCves.forEach((cve) => {
+    Object.entries(cve.vendors).forEach(([vendor, products]) => {
+      products.forEach((product) => {
+        const key = `${vendor}/${product}`;
+        if (!seen.has(key)) {
+          seen.set(key, { vendor, product, label: titleCaseFromSlug(product) });
+        }
+      });
+    });
+  });
+  return Array.from(seen.values());
+})();
+
+/**
+ * Local filter over demoVendorSuggestions — mirrors searchPopularStacks'
+ * matching behaviour so StackBuilder can use either source interchangeably.
+ */
+export function searchDemoVendorSuggestions(query) {
+  const q = (query || '').trim().toLowerCase();
+  if (!q) return demoVendorSuggestions;
+  return demoVendorSuggestions.filter((s) => {
+    const haystack = [s.vendor, s.product, s.label].join(' ').toLowerCase();
+    return q.split(/\s+/).every((part) => haystack.includes(part));
+  });
+}

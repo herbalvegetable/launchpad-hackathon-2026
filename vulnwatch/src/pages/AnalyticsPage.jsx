@@ -13,7 +13,7 @@ const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
 
 export default function AnalyticsPage() {
   const { team } = useTeamProfile();
-  const [cves, setCves] = useState([]);
+  const [stackCves, setStackCves] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const remediation = storage.getRemediation();
@@ -22,12 +22,13 @@ export default function AnalyticsPage() {
   useEffect(() => {
     let cancelled = false;
     if (!stack.length) {
+      setStackCves([]);
       setLoading(false);
       return;
     }
     getCvesForStack(stack)
       .then((results) => {
-        if (!cancelled) setCves(results);
+        if (!cancelled) setStackCves(results);
       })
       .catch((err) => {
         if (!cancelled) setError(err instanceof OpenCveError ? err.message : 'Could not load analytics data.');
@@ -42,19 +43,30 @@ export default function AnalyticsPage() {
 
   const statusCounts = useMemo(() => {
     const counts = { unreviewed: 0, under_analysis: 0, risk_accepted: 0, patched: 0 };
-    cves.forEach((c) => {
-      const status = remediation[c.id]?.status || 'unreviewed';
+    Object.values(remediation).forEach((r) => {
+      const status = r.status || 'unreviewed';
       counts[status] = (counts[status] || 0) + 1;
     });
     return counts;
-  }, [cves, remediation]);
+  }, [remediation]);
+
+  // Every CVE that's been searched/opened and given a remediation record
+  // (status, assignment, or notes), reconstructed from the snapshot
+  // RemediationTab stores alongside it. This is what actually drives the
+  // severity/critical/remediation panels below — independent of whether
+  // the CVE happens to be in the team's registered stack.
+  const trackedCves = useMemo(() => {
+    return Object.entries(remediation)
+      .filter(([, r]) => r.severity)
+      .map(([id, r]) => ({ id, severity: r.severity, cvss: { v3: r.cvssScore } }));
+  }, [remediation]);
 
   const topCritical = useMemo(() => {
-    return cves
+    return trackedCves
       .filter((c) => (remediation[c.id]?.status || 'unreviewed') !== 'patched')
       .sort((a, b) => (b.cvss?.v3 || 0) - (a.cvss?.v3 || 0))
       .slice(0, 5);
-  }, [cves, remediation]);
+  }, [trackedCves, remediation]);
 
   // Driven by the remediation store directly (not the stack-filtered `cves`
   // list) so an assignment shows up here even if the CVE was found via
@@ -72,15 +84,42 @@ export default function AnalyticsPage() {
     [assignedByMember]
   );
 
-  const dailyCounts = DEMO_MODE ? demoDailyCounts() : [];
+  // Live equivalent of demoDailyCounts(): buckets the stack-scoped CVEs
+  // actually fetched from OpenCVE by published date over the trailing 30
+  // days. Only covers CVEs tied to the team's registered stack, since that's
+  // the only live query that returns a `published` date at all - CVEs found
+  // via search-and-assign don't carry one in the remediation snapshot.
+  const dailyCounts = useMemo(() => {
+    if (DEMO_MODE) return demoDailyCounts();
 
-  if (!stack.length) {
+    const counts = new Map();
+    const days = [];
+    const now = new Date();
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const iso = d.toISOString().slice(0, 10);
+      days.push(iso);
+      counts.set(iso, 0);
+    }
+
+    stackCves.forEach((c) => {
+      if (!c.published) return;
+      const day = String(c.published).slice(0, 10);
+      if (counts.has(day)) counts.set(day, counts.get(day) + 1);
+    });
+
+    return days.map((date) => ({ date, count: counts.get(date) }));
+  }, [stackCves]);
+
+  if (!stack.length && trackedCves.length === 0) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16 text-center">
         <TrendingUp size={32} className="mx-auto text-[var(--text-faint)] mb-4" />
         <h2 className="font-display text-xl font-semibold mb-2">No data yet</h2>
         <p className="text-sm text-[var(--text-muted)]">
-          Register your stack in Settings to see severity trends and remediation progress.
+          Search for a CVE and assign it to a team member, or register your stack in
+          Settings, to see severity trends and remediation progress.
         </p>
       </div>
     );
@@ -111,7 +150,7 @@ export default function AnalyticsPage() {
           <h2 className="text-xs uppercase tracking-wider text-[var(--text-faint)] font-mono mb-3">
             CVE count by severity
           </h2>
-          <SeverityBarChart cves={cves} />
+          <SeverityBarChart cves={trackedCves} />
         </div>
 
         <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-panel)] p-5">

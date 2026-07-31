@@ -1,4 +1,4 @@
-import { demoCves } from '../data/demoCves';
+import { demoCves, searchDemoVendorSuggestions, demoVendorAliases } from '../data/demoCves';
 import { searchPopularStacks } from '../data/popularStacks';
 
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
@@ -171,8 +171,28 @@ async function enrichWithDetails(listItems, concurrency = 6) {
   return results;
 }
 
+/**
+ * If `vendor`/`product` doesn't exist in the fictional demo dataset (e.g. a
+ * team registered a real-world name like nginx/nginx before the stack
+ * builder was made demo-aware), remap it to the aliased fictional
+ * vendor/product so demo filtering still finds a match.
+ */
+function resolveDemoVendorProduct(vendor, product) {
+  if (!vendor) return { vendor, product };
+  const alias = demoVendorAliases[`${vendor}/${product}`];
+  if (!alias) return { vendor, product };
+  const [aliasVendor, aliasProduct] = alias.split('/');
+  return { vendor: aliasVendor, product: aliasProduct };
+}
+
 function filterDemoCves({ search, vendor, product, cvss } = {}) {
   let results = [...demoCves];
+  const resolved = resolveDemoVendorProduct(vendor, product);
+  const aliased = resolved.vendor !== vendor || resolved.product !== product;
+  const originalVendor = vendor;
+  const originalProduct = product;
+  vendor = resolved.vendor;
+  product = resolved.product;
   if (search) {
     const q = search.toLowerCase();
     results = results.filter(
@@ -189,6 +209,11 @@ function filterDemoCves({ search, vendor, product, cvss } = {}) {
     const bounds = { low: [0, 4], medium: [4, 7], high: [7, 9], critical: [9, 10.1] };
     const [min, max] = bounds[cvss] || [0, 10.1];
     results = results.filter((c) => c.cvss.v3 >= min && c.cvss.v3 < max);
+  }
+  if (aliased) {
+    // Relabel so the card/filter chips consistently show the vendor the
+    // team actually registered, not the internal fictional alias.
+    results = results.map((c) => ({ ...c, vendors: { [originalVendor]: [originalProduct] } }));
   }
   return results;
 }
@@ -249,6 +274,7 @@ export async function getCvesForStack(stack = []) {
  * Does not call OpenCVE — vendor/product names are OpenCVE-compatible CPE ids.
  */
 export async function searchVendorsProducts(query) {
+  if (DEMO_MODE) return searchDemoVendorSuggestions(query);
   return searchPopularStacks(query);
 }
 
